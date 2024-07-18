@@ -1,0 +1,17 @@
+[Unit]
+Description=Photo Frame
+DefaultDependencies=no
+After=multi-user.target
+
+[Service]
+Type=idle
+RemainAfterExit=yes
+User=pi
+ExecStart=/bin/bash /home/pi/photo.sh > /home/pi/photos.log 2>&1
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+
+
+[Install]
+WantedBy=multi-user.target
