@@ -23,9 +23,13 @@ const waitForFile = (file) => {
 }
 
 const processDailyFile = async () => {
-    const today = new Date();
+
+    let today = new Date();
 
     try {
+        if (process.argv.length > 2) {
+            today = new Date(process.argv[2]);
+        }
         const fileName = await buildDailyFile(today);
         if (fs.existsSync(defaultFile)) {
             await copyFile(defaultFile, backupFile);
