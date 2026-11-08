@@ -1,20 +1,13 @@
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
-// systemd owns fbi (it runs as root with a forced tty — fbi can't keep tty1
-// when launched via sudo from a service). Rebuilding the playlist just restarts
-// the unit; fbi picks up the new files.txt on start. The daily refresh runs as
-// the pi user via cron, so this needs the scoped NOPASSWD rule install.sh adds.
-const service = 'photos.service';
-
+// fbi runs under the tty1 autologin loop (deploy/frame.sh) — full-KMS /dev/fb0
+// needs a real login session that owns tty1, which a systemd service can't
+// provide. So "restart the frame" just means kill fbi: the loop immediately
+// relaunches it with the freshly rebuilt files.txt. fbi runs via sudo, so
+// stopping it needs sudo too (the NOPASSWD rule install.sh adds covers pkill).
 async function restartPhotoFrame() {
-    const { stdout, stderr } = await exec(`sudo systemctl restart ${service}`);
-    if (stderr) {
-        console.log('stderr:', stderr);
-    }
-    if (stdout) {
-        console.log(stdout);
-    }
+    await exec('sudo pkill fbi 2>/dev/null; true');
 }
 
 module.exports = restartPhotoFrame;

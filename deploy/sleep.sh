@@ -1,11 +1,11 @@
 #!/bin/bash
-# Nightly: stop the slideshow and power the panel off.
+# Nightly: pause the slideshow and power the panel off.
 #
-# systemd owns fbi, so stop the unit (cleaner than pkill, and lets getty@tty1
-# return while the frame is off). Then blank the panel: vcgencmd display_power
-# does NOT work under the full-KMS (vc4-kms-v3d) driver on 64-bit Raspberry Pi
-# OS (returns -1); writing 4 (FB_BLANK_POWERDOWN) to the framebuffer's sysfs
-# blank node drives the connector's DPMS off instead. The framebuffer contents
-# are preserved, so wake.sh brings back the last photo.
-sudo systemctl stop photos.service
+# frame.sh relaunches fbi whenever it's killed, so set a pause flag it checks
+# before killing fbi (wake.sh clears it). Then blank the panel: vcgencmd
+# display_power returns -1 and does nothing under full KMS (vc4-kms-v3d), so
+# write 4 (FB_BLANK_POWERDOWN) to the framebuffer's sysfs blank node instead.
+# The framebuffer is preserved, so wake.sh shows the last photo.
+touch /home/pi/.frame-paused
+sudo pkill fbi 2>/dev/null
 echo 4 | sudo tee /sys/class/graphics/fb0/blank > /dev/null

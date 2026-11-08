@@ -18,9 +18,5 @@
     "maxBytes": 10485760,
     "iphoneFolderMatch": "phone photos",
     "extensions": ["jpg", "jpeg", "png", "gif", "heic"]
-  },
-  "scripts": {
-    "stopFbi": "/home/pi/stopfbi.sh",
-    "startPhoto": "/home/pi/photo.sh"
   }
 }
