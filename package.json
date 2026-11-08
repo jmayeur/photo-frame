@@ -1,14 +1,20 @@
 {
   "name": "photo-frame",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Raspberry Pi 'on this day' digital photo frame (fbi + SQLite index over a NAS).",
+  "main": "src/photoscanner/scanAllDirs.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "init-db": "node src/dbmanager/init_db.js",
+    "scan": "node src/photoscanner/scanAllDirs.js",
+    "refresh": "node src/photoscanner/process_daily_file.js"
   },
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
+    "exifr": "^7.1.3",
     "sqlite3": "^5.1.7"
   }
 }

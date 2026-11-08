@@ -1,0 +1,26 @@
+{
+  "photosDir": "/home/pi/Photos",
+  "photoFolders": [
+    "Family Photos",
+    "Vacations",
+    "Scanned Albums",
+    "Phone Photos"
+  ],
+  "dbPath": "/home/pi/filescanner/data/photofiles.db",
+  "playlist": "/home/pi/files.txt",
+  "cacheDir": "/home/pi/cache",
+  "panel": { "width": 1366, "height": 768 },
+  "imagemagick": { "bin": "convert", "quality": 90 },
+  "fbi": { "device": "/dev/fb0", "tty": 1, "intervalSec": 30 },
+  "scan": {
+    "minBytes": 204800,
+    "iphoneMinBytes": 1024000,
+    "maxBytes": 10485760,
+    "iphoneFolderMatch": "phone photos",
+    "extensions": ["jpg", "jpeg", "png", "gif", "heic"]
+  },
+  "scripts": {
+    "stopFbi": "/home/pi/stopfbi.sh",
+    "startPhoto": "/home/pi/photo.sh"
+  }
+}

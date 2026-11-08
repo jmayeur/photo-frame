@@ -3,16 +3,16 @@ const exec = util.promisify(require("child_process").exec);
 
 const fs = require('fs');
 const path = require('path');
+const config = require('../config');
 
-const filesSizeFloor = 200 * 1024;
-const filesSizeiPhoneFloor = 1000 * 1024;
-const filesSizeCeil = 10 * 1024 * 1024;
+const { minBytes, iphoneMinBytes, maxBytes, iphoneFolderMatch, extensions } = config.scan;
+const extRegex = new RegExp(`\\.(${extensions.join('|')})$`, 'i');
 
 const isValidFile = (fullfilepath, fileName, fileSize) => {
-    if (fullfilepath.toLowerCase().includes('jeff iphone photos')) {
-        return fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|heic)$/i) && fileSize >= filesSizeiPhoneFloor && fileSize <= filesSizeCeil;
-    }
-    return fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|heic)$/i) && fileSize >= filesSizeFloor && fileSize <= filesSizeCeil;
+    const floor = fullfilepath.toLowerCase().includes(iphoneFolderMatch.toLowerCase())
+        ? iphoneMinBytes
+        : minBytes;
+    return extRegex.test(fileName) && fileSize >= floor && fileSize <= maxBytes;
 };
 
 const walk = async (dir) => {

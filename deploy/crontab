@@ -1,0 +1,14 @@
+# Photo Frame schedule — the operational heart of the system.
+# Install with:  crontab deploy/crontab   (review paths/user first)
+#
+# Script names below are the repo-canonical ones; deploy/install.sh copies
+# them into $HOME so these entries resolve.
+#
+# m h  dom mon dow   command
+30 22  *   *   *     sudo vcgencmd display_power 0 2                         # blank the HDMI display at night
+0  7   *   *   *     sudo vcgencmd display_power 1 2                         # wake the display in the morning
+15 7   *   *   *     /home/pi/refreshDay.sh >> /home/pi/refresh.log 2>&1     # rebuild today's "on this day" playlist
+0  0   1   *   *     sh /home/pi/scanAllDirs.sh                             # monthly full NAS rescan
+# OS updates are handled by unattended-upgrades (security only, auto-reboot
+# 03:30) — see deploy/apt/. The old weekly `auto-update.sh` dist-upgrade is
+# retired; auto-update.sh is kept in deploy/ for historical reference only.
