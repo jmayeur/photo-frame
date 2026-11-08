@@ -9,14 +9,17 @@ const { width, height } = config.panel;
 const bin = (config.imagemagick && config.imagemagick.bin) || 'convert';
 const quality = String((config.imagemagick && config.imagemagick.quality) || 90);
 
-// Deterministic cache filename from source path + mtime: a re-export of the
-// same file reuses the cache, an edited file re-converts. The original
-// basename is kept as a prefix so fbi's on-screen overlay (-v) is recognizable
-// (e.g. "2010-08-11_11.57.12__a1b2c3d4e5f6.jpg"); the 12-hex suffix keeps it
-// unique across folders that reuse a basename. Use `npm run whereis` for the
-// exact NAS path.
+// Deterministic cache filename from source path + mtime + panel size: a
+// re-export of the same file reuses the cache, an edited file (or a changed
+// panel size) re-converts. Including the panel in the key matters when a
+// primary builds the shared cache at the largest consumer's resolution — bump
+// `panel` and the next refresh rebuilds at the new size instead of serving
+// stale images. The original basename is kept as a prefix so fbi's on-screen
+// overlay (-v) is recognizable (e.g. "2010-08-11_11.57.12__a1b2c3d4e5f6.jpg");
+// the 12-hex suffix keeps it unique across folders that reuse a basename. Use
+// `npm run whereis` for the exact NAS path.
 const cacheName = (src, mtimeMs) => {
-    const h = crypto.createHash('sha1').update(`${src}:${mtimeMs}`).digest('hex').slice(0, 12);
+    const h = crypto.createHash('sha1').update(`${src}:${mtimeMs}:${width}x${height}`).digest('hex').slice(0, 12);
     const base = path.basename(src, path.extname(src))
         .replace(/[^A-Za-z0-9._-]/g, '_')
         .replace(/_+/g, '_')
