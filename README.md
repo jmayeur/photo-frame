@@ -27,11 +27,16 @@ Scheduling lives in `deploy/crontab`:
 
 | When          | Job                     | Purpose                              |
 | ------------- | ----------------------- | ------------------------------------ |
-| 22:30 daily   | `vcgencmd display_power 0` | Blank the HDMI display at night   |
-| 07:00 daily   | `vcgencmd display_power 1` | Wake the display                  |
+| 22:30 daily   | `sleep.sh`              | Power the panel off at night (KMS DPMS) |
+| 07:00 daily   | `wake.sh`               | Power the panel back on              |
 | 07:15 daily   | `refreshDay.sh`         | Rebuild today's playlist, restart fbi |
 | 1st of month  | `scanAllDirs.sh`        | Full NAS rescan                      |
 | ~03:30 (as needed) | `unattended-upgrades` | Security updates + reboot (not cron) |
+
+Nightly blanking uses `echo 4 > /sys/class/graphics/fb0/blank` (framebuffer
+DPMS power-down), **not** `vcgencmd display_power` — the latter returns `-1` and
+does nothing under the full-KMS (`vc4-kms-v3d`) driver on 64-bit Raspberry Pi
+OS. The framebuffer is preserved while off, so the last photo reappears on wake.
 
 ## Layout
 
@@ -45,6 +50,7 @@ deploy/
   photos.service      systemd unit that launches fbi on boot
   crontab             The schedule above
   photo.sh/stopfbi.sh fbi start/stop
+  sleep.sh/wake.sh    Nightly panel power-down / power-up (KMS DPMS)
   refreshDay.sh       Wrapper: rebuild today's playlist
   scanAllDirs.sh      Wrapper: full rescan
   auto-update.sh      Weekly OS update (see note in file)
@@ -130,9 +136,11 @@ OS: Raspberry Pi OS Lite 64-bit), enabling SSH + user in its settings.
          Trixie/Bookworm use full KMS (vc4-kms-v3d), not the buster `fkms`
          driver; `/dev/fb0` is DRM fbdev emulation and may need `console=tty1`
          / a disabled getty on tty1.
-   - [ ] Nightly blanking works. `vcgencmd display_power 0/1` is legacy and may
-         not blank HDMI under KMS — fall back to `wlr-randr`, `xset`, or
-         CEC (`cec-ctl`/`echo 'standby 0' | cec-client`) if so.
+   - [ ] Nightly blanking works. `vcgencmd display_power` returns `-1` under
+         full KMS (confirmed), so `sleep.sh`/`wake.sh` use the framebuffer DPMS
+         node instead: `echo 4 | sudo tee /sys/class/graphics/fb0/blank` powers
+         the panel down, `echo 0` restores it. (If a panel ignores DPMS, fall
+         back to CEC: `cec-ctl --to 0 --standby`.)
    - [ ] HEIC renders. ImageMagick on Bookworm has the HEIF delegate; confirm
          with `convert -list format | grep -i heic`.
 6. Swap the card once all three pass.

@@ -5,9 +5,9 @@
 # them into $HOME so these entries resolve.
 #
 # m h  dom mon dow   command
-30 22  *   *   *     sudo vcgencmd display_power 0 2                         # blank the HDMI display at night
-0  7   *   *   *     sudo vcgencmd display_power 1 2                         # wake the display in the morning
-15 7   *   *   *     /home/pi/refreshDay.sh >> /home/pi/refresh.log 2>&1     # rebuild today's "on this day" playlist
+30 22  *   *   *     /home/pi/sleep.sh                                       # power the panel off at night (KMS DPMS)
+0  7   *   *   *     /home/pi/wake.sh                                        # power the panel back on in the morning
+15 7   *   *   *     /home/pi/refreshDay.sh >> /home/pi/refresh.log 2>&1     # rebuild today's "on this day" playlist + restart fbi
 0  0   1   *   *     sh /home/pi/scanAllDirs.sh                             # monthly full NAS rescan
 # OS updates are handled by unattended-upgrades (security only, auto-reboot
 # 03:30) — see deploy/apt/. The old weekly `auto-update.sh` dist-upgrade is
