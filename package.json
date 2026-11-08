@@ -7,7 +7,8 @@
     "init-db": "node src/dbmanager/init_db.js",
     "scan": "node src/photoscanner/scanAllDirs.js",
     "refresh": "node src/photoscanner/process_daily_file.js",
-    "whereis": "node src/photoscanner/whereis.js"
+    "whereis": "node src/photoscanner/whereis.js",
+    "frame-env": "node src/frame_env.js"
   },
   "author": "",
   "license": "ISC",
