@@ -31,7 +31,6 @@ install -m 755 "$APP_DIR/deploy/photo.sh"       "$HOME_DIR/photo.sh"
 install -m 755 "$APP_DIR/deploy/stopfbi.sh"     "$HOME_DIR/stopfbi.sh"
 install -m 755 "$APP_DIR/deploy/refreshDay.sh"  "$HOME_DIR/refreshDay.sh"
 install -m 755 "$APP_DIR/deploy/scanAllDirs.sh" "$HOME_DIR/scanAllDirs.sh"
-install -m 755 "$APP_DIR/deploy/auto-update.sh" "$HOME_DIR/auto-update.sh"
 mkdir -p "$HOME_DIR/logs" "$APP_DIR/data"
 
 # 5. systemd service
@@ -39,6 +38,13 @@ echo "==> Installing systemd service"
 sudo cp "$APP_DIR/deploy/photos.service" /etc/systemd/system/photos.service
 sudo systemctl daemon-reload
 sudo systemctl enable photos.service
+
+# 5b. Automatic security updates (replaces the old weekly dist-upgrade cron)
+echo "==> Configuring unattended-upgrades (security only, auto-reboot 03:30)"
+sudo apt-get install -y unattended-upgrades
+sudo cp "$APP_DIR/deploy/apt/20auto-upgrades" /etc/apt/apt.conf.d/20auto-upgrades
+sudo cp "$APP_DIR/deploy/apt/51unattended-upgrades-photo-frame" \
+    /etc/apt/apt.conf.d/51unattended-upgrades-photo-frame
 
 # 6. Database
 echo "==> Initializing database (no-op if it already exists)"

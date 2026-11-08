@@ -1,10 +1,11 @@
 #!/bin/bash
-# Captured as-is from the live Pi (weekly, Sat 00:20 via cron).
+# RETIRED — kept for historical reference only.
 #
-# NOTE: a weekly unattended `apt dist-upgrade -y` followed by a reboot is risky
-# on a live OS. On the Bookworm reimage this should be replaced by the
-# `unattended-upgrades` package scoped to security updates only. Kept verbatim
-# here so the repo reflects what actually runs today.
+# This was the live Pi's weekly updater (Sat 00:20 via cron): an unattended
+# `apt dist-upgrade -y` followed by a reboot, which is risky on a live OS.
+# It has been replaced by the `unattended-upgrades` package (security updates
+# only, auto-reboot at 03:30) — see deploy/apt/ and deploy/install.sh. It is no
+# longer wired into deploy/crontab or installed by install.sh.
 {
 echo "**********"
 echo `date`

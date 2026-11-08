@@ -1,0 +1,10 @@
+// Photo Frame overrides for unattended-upgrades.
+//
+// Keeps the distro's default (security) origin list from
+// /etc/apt/apt.conf.d/50unattended-upgrades — we only change reboot behavior,
+// so a kernel/security update is applied and the frame reboots once in the
+// quiet overnight window instead of a blanket weekly `apt dist-upgrade`.
+
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "03:30";

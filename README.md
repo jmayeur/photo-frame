@@ -30,8 +30,8 @@ Scheduling lives in `deploy/crontab`:
 | 22:30 daily   | `vcgencmd display_power 0` | Blank the HDMI display at night   |
 | 07:00 daily   | `vcgencmd display_power 1` | Wake the display                  |
 | 07:15 daily   | `refreshDay.sh`         | Rebuild today's playlist, restart fbi |
-| Sat 00:20     | `auto-update.sh`        | OS update + reboot                   |
 | 1st of month  | `scanAllDirs.sh`        | Full NAS rescan                      |
+| ~03:30 (as needed) | `unattended-upgrades` | Security updates + reboot (not cron) |
 
 ## Layout
 
