@@ -49,12 +49,15 @@ OS. The framebuffer is preserved while off, so the last photo reappears on wake.
 config.example.json   Per-host settings (copy to config.json; git-ignored)
 src/
   config.js           Loads config.json / config.example.json
+  frame_env.js        Renders fbi options + source into ~/.frame.env (shell)
   photoscanner/       Scan NAS, build daily playlist, restart fbi
   dbmanager/          SQLite index (init, insert, query)
 deploy/
   frame.sh            Slideshow loop (runs on the tty1 autologin session)
   getty-autologin.conf  tty1 autologin drop-in (reference; install.sh applies it)
-  crontab             The schedule above
+  crontab             Primary schedule (scan + daily refresh + blank/wake)
+  crontab.client      Client schedule (pull from primary + blank/wake)
+  sync.sh             Client: rsync the primary's playlist + cache
   stopfbi.sh          Pause the slideshow
   sleep.sh/wake.sh    Nightly panel power-down / power-up (KMS DPMS)
   refreshDay.sh       Wrapper: rebuild today's playlist
@@ -82,6 +85,14 @@ Key fields:
 - `imagemagick.bin` — `convert` on ImageMagick 6, `magick` on 7.
 - `scan.iphoneFolderMatch` — any folder whose path contains this string uses the
   larger `iphoneMinBytes` floor (phone photos tend to be bigger).
+- `fbi.verbose` — `true` shows the filename overlay (`-v`); `false` hides it
+  (`--noverbose`). Also `fbi.tty`, `fbi.intervalSec`, `fbi.device`.
+- `source` — leave `null` for a normal (primary) frame. Set it to make this a
+  display-only **client** that pulls another frame's playlist + cache instead of
+  scanning the NAS — see [A second frame](#a-second-frame-primary--client).
+
+fbi options are rendered from config into `~/.frame.env` at install; after
+editing `config.json`, regenerate with `npm run frame-env > ~/.frame.env`.
 
 `config.json` is git-ignored. No code hard-codes `/home/pi`, so a different user
 or host only needs this file edited. Override its location with
@@ -102,6 +113,38 @@ npm run whereis -- <part of the on-screen name>   # e.g. 2010-08-11
 
 The cache is pruned to the current day's set on every build, so it stays about
 one day's worth of images rather than growing toward the whole library.
+
+## A second frame (primary + client)
+
+A second frame can display the same "on this day" photos **without re-scanning
+the NAS** by pulling the primary's already-prepared `files.txt` + `cache/`. The
+primary (the one with the NAS mount) does all the work; the client just syncs
+and shows.
+
+On the **client**, set `source` in `config.json` (and usually `fbi.verbose` to
+taste), e.g. a frame pulling from `192.168.119.7` with no on-image filename:
+
+```json
+"fbi": { "device": "/dev/fb0", "tty": 1, "intervalSec": 30, "verbose": false },
+"source": { "host": "192.168.119.7", "user": "pi" }
+```
+
+Then on the client:
+
+```bash
+bash deploy/install.sh                 # detects `source`, sets up display + sync.sh
+ssh-keygen -t ed25519                   # key-based SSH to the primary (for rsync)
+ssh-copy-id pi@192.168.119.7
+~/sync.sh                               # first pull: cache/ + files.txt
+crontab deploy/crontab.client           # pull 07:20 daily + nightly blank/wake
+sudo reboot
+```
+
+`sync.sh` rsyncs the primary's `cache/` (mirrored, `--delete`) and `files.txt`,
+then nudges fbi to reload. The client's `cacheDir` must match the primary's
+cache path (both default to `/home/pi/cache`) so the paths inside `files.txt`
+resolve. Panels needn't match resolution — fbi's `-a` autozoom scales the shared
+cache to each panel.
 
 ## Install (fresh Raspberry Pi OS Lite, 64-bit)
 

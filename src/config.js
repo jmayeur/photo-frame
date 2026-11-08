@@ -15,8 +15,8 @@ const ROOT = path.resolve(__dirname, "..");
 const userCfg = process.env.PHOTO_FRAME_CONFIG || path.join(ROOT, "config.json");
 const exampleCfg = path.join(ROOT, "config.example.json");
 
-const source = fs.existsSync(userCfg) ? userCfg : exampleCfg;
-const raw = JSON.parse(fs.readFileSync(source, "utf8"));
+const configFile = fs.existsSync(userCfg) ? userCfg : exampleCfg;
+const raw = JSON.parse(fs.readFileSync(configFile, "utf8"));
 
 // Absolute photo-source folders (entries may be absolute or relative to photosDir).
 const photoFolders = (raw.photoFolders || []).map((f) =>
@@ -27,8 +27,8 @@ const photoFolders = (raw.photoFolders || []).map((f) =>
 const playlistDir = path.dirname(raw.playlist);
 
 module.exports = {
-  ...raw,
-  source,
+  ...raw,            // includes `source` (the optional client pull config), when set
+  configFile,        // which config file was loaded (for diagnostics)
   photoFolders,
   playlistDir,
   backupPlaylist: path.join(playlistDir, "backup_files.txt"),

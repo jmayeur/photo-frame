@@ -1,0 +1,12 @@
+# Photo Frame schedule — CLIENT frame (display only).
+# This frame pulls the primary's prepared playlist + cache; it does NOT scan the
+# NAS or build playlists. Install with:  crontab deploy/crontab.client
+#
+# Pull runs after the primary's 07:15 daily rebuild. Nightly blank/wake are the
+# same as the primary.
+#
+# m h  dom mon dow   command
+0  7   *   *   *     /home/pi/wake.sh                                     # power the panel back on
+20 7   *   *   *     /home/pi/sync.sh >> /home/pi/sync.log 2>&1           # pull the primary's playlist + cache
+30 22  *   *   *     /home/pi/sleep.sh                                    # power the panel off at night
+# OS updates: unattended-upgrades (security only) — see deploy/apt/.

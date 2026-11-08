@@ -10,9 +10,9 @@ export PHOTO_FRAME_DIR="$APP_DIR"
 echo "==> Installing photo-frame from $APP_DIR for user $USER"
 
 # 1. System packages
-echo "==> Installing system packages (fbi, imagemagick, nfs-common)"
+echo "==> Installing system packages (fbi, imagemagick, nfs-common, rsync)"
 sudo apt-get update
-sudo apt-get install -y fbi imagemagick nfs-common
+sudo apt-get install -y fbi imagemagick nfs-common rsync
 
 # 2. Node dependencies
 echo "==> Installing Node dependencies"
@@ -33,7 +33,14 @@ install -m 755 "$APP_DIR/deploy/refreshDay.sh"  "$HOME_DIR/refreshDay.sh"
 install -m 755 "$APP_DIR/deploy/scanAllDirs.sh" "$HOME_DIR/scanAllDirs.sh"
 install -m 755 "$APP_DIR/deploy/sleep.sh"       "$HOME_DIR/sleep.sh"
 install -m 755 "$APP_DIR/deploy/wake.sh"        "$HOME_DIR/wake.sh"
+install -m 755 "$APP_DIR/deploy/sync.sh"        "$HOME_DIR/sync.sh"
 mkdir -p "$HOME_DIR/logs" "$APP_DIR/data"
+
+# Render the shell env (fbi options + playlist + optional client source) from
+# config.json, so frame.sh/sync.sh stay generic. Re-run after editing config:
+#   npm run frame-env > ~/.frame.env
+node "$APP_DIR/src/frame_env.js" > "$HOME_DIR/.frame.env"
+echo "   wrote $HOME_DIR/.frame.env"
 
 # 4b. Display: fbi on full-KMS /dev/fb0 needs a real login session that owns
 # tty1 (a systemd service can't provide it — fbi exits immediately). So we
@@ -86,9 +93,17 @@ echo "==> Initializing database (no-op if it already exists)"
 node "$APP_DIR/src/dbmanager/init_db.js" 2>/dev/null || echo "   (db already initialized)"
 
 echo
-echo "==> Done. Next steps:"
-echo "    1. Mount the NAS at the photosDir from config.json (see README: /etc/fstab)."
-echo "    2. Install the schedule:   crontab $APP_DIR/deploy/crontab"
-echo "    3. First scan:             node $APP_DIR/src/photoscanner/scanAllDirs.js"
-echo "    4. Build today's playlist: $HOME_DIR/refreshDay.sh"
-echo "    5. Reboot — the frame auto-logs-in on tty1 and starts the slideshow."
+if [ -n "$(node -e "process.stdout.write(((require('$APP_DIR/src/config').source)||{}).host||'')" 2>/dev/null)" ]; then
+  echo "==> Done (CLIENT frame — pulls from the primary, no NAS scan). Next steps:"
+  echo "    1. Key-based SSH to the primary:  ssh-keygen -t ed25519 ; ssh-copy-id <user>@<primary-ip>"
+  echo "    2. First pull:             $HOME_DIR/sync.sh"
+  echo "    3. Install the schedule:   crontab $APP_DIR/deploy/crontab.client"
+  echo "    4. Reboot — the frame auto-logs-in on tty1 and starts the slideshow."
+else
+  echo "==> Done (PRIMARY frame). Next steps:"
+  echo "    1. Mount the NAS at the photosDir from config.json (see README: /etc/fstab)."
+  echo "    2. Install the schedule:   crontab $APP_DIR/deploy/crontab"
+  echo "    3. First scan:             node $APP_DIR/src/photoscanner/scanAllDirs.js"
+  echo "    4. Build today's playlist: $HOME_DIR/refreshDay.sh"
+  echo "    5. Reboot — the frame auto-logs-in on tty1 and starts the slideshow."
+fi

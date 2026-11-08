@@ -11,12 +11,13 @@
   "cacheDir": "/home/pi/cache",
   "panel": { "width": 1366, "height": 768 },
   "imagemagick": { "bin": "convert", "quality": 90 },
-  "fbi": { "device": "/dev/fb0", "tty": 1, "intervalSec": 30 },
+  "fbi": { "device": "/dev/fb0", "tty": 1, "intervalSec": 30, "verbose": true },
   "scan": {
     "minBytes": 204800,
     "iphoneMinBytes": 1024000,
     "maxBytes": 10485760,
     "iphoneFolderMatch": "phone photos",
     "extensions": ["jpg", "jpeg", "png", "gif", "heic"]
-  }
+  },
+  "source": null
 }
