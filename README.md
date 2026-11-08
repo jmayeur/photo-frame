@@ -75,6 +75,22 @@ Key fields:
 or host only needs this file edited. Override its location with
 `PHOTO_FRAME_CONFIG=/path/to/config.json`.
 
+## Finding the original photo
+
+fbi displays pre-processed copies from `cacheDir`, not the NAS originals, so the
+on-screen filename overlay (`fbi -v`) shows a cache name. Each cache file keeps
+the original basename as a prefix (e.g. `2010-08-11_11.57.12__a1b2c3d4e5f6.jpg`)
+so it's recognizable, and each daily build writes `cacheDir/manifest.tsv`
+mapping the cache name to the full original path. To get the exact NAS path for
+anything in the current rotation:
+
+```bash
+npm run whereis -- <part of the on-screen name>   # e.g. 2010-08-11
+```
+
+The cache is pruned to the current day's set on every build, so it stays about
+one day's worth of images rather than growing toward the whole library.
+
 ## Install (fresh Raspberry Pi OS Lite, 64-bit)
 
 ```bash
@@ -83,6 +99,13 @@ cd ~/filescanner
 bash deploy/install.sh        # system + node deps, scripts, service, db
 # then follow the printed steps: mount NAS, install crontab, first scan
 ```
+
+`install.sh` also writes `/etc/sudoers.d/photo-frame` granting the install user
+passwordless sudo for **only** `fbi` and `pkill`. The frame scripts restart fbi
+with `sudo` (it needs root for `/dev/fb0` + the VT switch), and the daily cron
+job runs headless — without this it would hang on a password prompt. Old
+Raspbian gave the `pi` user blanket NOPASSWD by default; a fresh 64-bit install
+does not, so this scopes it narrowly.
 
 ## Reimage runbook: buster (32-bit) → 64-bit
 

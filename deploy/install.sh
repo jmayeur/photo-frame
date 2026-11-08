@@ -33,6 +33,25 @@ install -m 755 "$APP_DIR/deploy/refreshDay.sh"  "$HOME_DIR/refreshDay.sh"
 install -m 755 "$APP_DIR/deploy/scanAllDirs.sh" "$HOME_DIR/scanAllDirs.sh"
 mkdir -p "$HOME_DIR/logs" "$APP_DIR/data"
 
+# 4b. Passwordless sudo for fbi + pkill.
+# photo.sh/stopfbi.sh call `sudo fbi` and `sudo pkill fbi` (fbi needs root for
+# /dev/fb0 and the VT switch). cron runs the daily refresh headlessly, so a
+# sudo password prompt would hang/fail. On old Raspbian the `pi` user had
+# blanket NOPASSWD by default; a fresh 64-bit install does not, so scope it to
+# exactly these two commands.
+echo "==> Granting passwordless sudo for fbi/pkill (cron restarts the frame headlessly)"
+FBI_BIN="$(command -v fbi || echo /usr/bin/fbi)"
+PKILL_BIN="$(command -v pkill || echo /usr/bin/pkill)"
+SUDOERS_TMP="$(mktemp)"
+printf '%s ALL=(ALL) NOPASSWD: %s, %s\n' "$USER" "$FBI_BIN" "$PKILL_BIN" > "$SUDOERS_TMP"
+if sudo visudo -cf "$SUDOERS_TMP" >/dev/null; then
+  sudo install -m 0440 -o root -g root "$SUDOERS_TMP" /etc/sudoers.d/photo-frame
+  echo "   installed /etc/sudoers.d/photo-frame"
+else
+  echo "   !! sudoers validation failed; not installing. Check fbi/pkill paths." >&2
+fi
+rm -f "$SUDOERS_TMP"
+
 # 5. systemd service
 echo "==> Installing systemd service"
 sudo cp "$APP_DIR/deploy/photos.service" /etc/systemd/system/photos.service

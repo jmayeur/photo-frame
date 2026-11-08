@@ -1,7 +1,10 @@
 const processInserts = async (db, inserts) => {
 
 
-    const baseInsertQuery = 'INSERT INTO photos (hash, path, date, month, year, day) VALUES ';
+    // OR IGNORE makes inserts idempotent: a hash already indexed (a resumed
+    // scan, or a duplicate that slipped through in-memory dedup) is skipped
+    // instead of aborting the whole run on the UNIQUE(hash) constraint.
+    const baseInsertQuery = 'INSERT OR IGNORE INTO photos (hash, path, date, month, year, day) VALUES ';
 
     return new Promise((resolve, reject) => {
         const chunkSize = 10;
