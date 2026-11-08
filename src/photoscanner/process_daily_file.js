@@ -2,8 +2,9 @@ const buildDailyFile = require("./build_day_month_file");
 const { unlink, copyFile } = require("node:fs/promises");
 const fs = require("fs");
 const restartPhotoFrame = require("./restart_photo_frame");
-const defaultFile = "/home/pi/files.txt";
-const backupFile = "/home/pi/backup_files.txt";
+const config = require("../config");
+const defaultFile = config.playlist;
+const backupFile = config.backupPlaylist;
 
 const waitForFile = (file) => {
   return new Promise((resolve, reject) => {

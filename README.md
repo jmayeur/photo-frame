@@ -1,0 +1,101 @@
+# Photo Frame
+
+An "on this day" digital photo frame for a Raspberry Pi driving a local HDMI
+LCD. A SQLite index of photos on a NAS is scanned periodically; each morning the
+photos taken on today's month/day (across all years) are written to a playlist
+and displayed full-screen with [`fbi`](https://manpages.debian.org/fbi).
+
+## How it works
+
+```
+NAS (Synology, NFS)  ──mounted at──>  <photosDir>
+        │
+        │  monthly: scanAllDirs.js  (recursive walk → SQLite index)
+        ▼
+   data/photofiles.db   (photos keyed by month/day/year)
+        │
+        │  daily 07:15: process_daily_file.js
+        ▼
+   files.txt  (today's "on this day" photos)
+        │
+        ▼
+   fbi -d /dev/fb0  (full-screen slideshow, 30s/photo)
+```
+
+Scheduling lives in `deploy/crontab`:
+
+| When          | Job                     | Purpose                              |
+| ------------- | ----------------------- | ------------------------------------ |
+| 22:30 daily   | `vcgencmd display_power 0` | Blank the HDMI display at night   |
+| 07:00 daily   | `vcgencmd display_power 1` | Wake the display                  |
+| 07:15 daily   | `refreshDay.sh`         | Rebuild today's playlist, restart fbi |
+| Sat 00:20     | `auto-update.sh`        | OS update + reboot                   |
+| 1st of month  | `scanAllDirs.sh`        | Full NAS rescan                      |
+
+## Layout
+
+```
+config.example.json   Per-host settings (copy to config.json; git-ignored)
+src/
+  config.js           Loads config.json / config.example.json
+  photoscanner/       Scan NAS, build daily playlist, restart fbi
+  dbmanager/          SQLite index (init, insert, query)
+deploy/
+  photos.service      systemd unit that launches fbi on boot
+  crontab             The schedule above
+  photo.sh/stopfbi.sh fbi start/stop
+  refreshDay.sh       Wrapper: rebuild today's playlist
+  scanAllDirs.sh      Wrapper: full rescan
+  auto-update.sh      Weekly OS update (see note in file)
+  install.sh          Reproducible install
+data/                 Generated SQLite db (git-ignored)
+```
+
+## Configuration
+
+All host-specific paths live in `config.json` (copied from
+`config.example.json`). No code hard-codes `/home/pi` — a reimage onto a
+different user or host only needs this file edited. Override the location with
+`PHOTO_FRAME_CONFIG=/path/to/config.json`.
+
+## Install (fresh Raspberry Pi OS Bookworm Lite, 64-bit)
+
+```bash
+git clone <this repo> ~/filescanner
+cd ~/filescanner
+bash deploy/install.sh        # system + node deps, scripts, service, db
+# then follow the printed steps: mount NAS, install crontab, first scan
+```
+
+## Reimage runbook: buster (32-bit) → Bookworm (64-bit)
+
+The Pi 3B is 64-bit-capable; the current OS (Raspbian 10 buster) is 32-bit and
+end-of-life. Reimage onto a **spare SD card** so the running card stays as
+instant rollback.
+
+1. Flash **Raspberry Pi OS Bookworm Lite (64-bit)** to a spare card. Enable SSH.
+2. Create the same user layout (or edit `config.json` for a new username).
+3. Mount the NAS. Example `/etc/fstab` line (NFSv3, Synology):
+   ```
+   192.168.119.136:/volume1/Photos  /home/<user>/Photos  nfs  rw,hard,vers=3  0  0
+   ```
+4. `bash deploy/install.sh`, then the printed steps.
+5. **Validate before swapping cards (Bookworm display-stack changes):**
+   - [ ] `fbi -d /dev/fb0 -T 1 ...` actually renders on the HDMI panel.
+         Bookworm uses full KMS (vc4-kms-v3d), not the buster `fkms` driver;
+         `/dev/fb0` is DRM fbdev emulation and may need `console=tty1` / a
+         disabled getty on tty1.
+   - [ ] Nightly blanking works. `vcgencmd display_power 0/1` is legacy and may
+         not blank HDMI under KMS — fall back to `wlr-randr`, `xset`, or
+         CEC (`cec-ctl`/`echo 'standby 0' | cec-client`) if so.
+   - [ ] HEIC renders. ImageMagick on Bookworm has the HEIF delegate; confirm
+         with `convert -list format | grep -i heic`.
+6. Swap the card once all three pass.
+
+## Known follow-ups (not yet applied)
+
+- Use EXIF `DateTimeOriginal` instead of file mtime for the "on this day" date.
+- Parameterize SQL queries; fix the month-wrap recursion in `get_month_day_photos.js`.
+- Pre-process images (EXIF-rotate, HEIC→JPEG, resize to the panel) with ImageMagick,
+  driven from the scanner.
+- Replace `auto-update.sh`'s `dist-upgrade` with `unattended-upgrades` (security only).

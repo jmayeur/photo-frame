@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const config = require('../config');
 const getHash = require('./get_hash');
 const processInserts = require('./process_inserts');
 
@@ -43,7 +44,7 @@ const processRawFiles = async (db, files) => {
 }
 
 module.exports = async (files) => {
-    const db = new sqlite3.Database('/home/pi/filescanner/dbmanager/photofiles.db');
+    const db = new sqlite3.Database(config.dbPath);
     return await processRawFiles(db, files) && db.close();
 };
 

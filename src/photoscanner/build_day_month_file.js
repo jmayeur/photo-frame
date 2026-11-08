@@ -1,4 +1,6 @@
 const fs = require('fs');
+const path = require('path');
+const config = require('../config');
 const get_month_day_photos = require('../dbmanager/get_month_day_photos');
 const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
@@ -13,7 +15,7 @@ const buildFile = async (date) => {
 
         const photos = await get_month_day_photos(month, day);
         const textMonth = months[month];
-        const fileName = `/home/pi/files_${textMonth}_${day}.txt`;
+        const fileName = path.join(config.playlistDir, `files_${textMonth}_${day}.txt`);
         const file = fs.createWriteStream(fileName);
         photos.forEach(photo => {
             file.write(`${photo}\n`);

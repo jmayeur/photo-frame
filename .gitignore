@@ -1,4 +1,13 @@
-./node_modules
-./vscode
 node_modules/
 .DS_Store
+
+# Per-host config (copy config.example.json -> config.json)
+config.json
+
+# Generated data
+data/
+*.db
+
+# Local logs
+logs/
+*.log

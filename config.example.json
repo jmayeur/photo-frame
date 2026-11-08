@@ -1,0 +1,25 @@
+{
+  "photosDir": "/home/pi/Photos",
+  "photoFolders": [
+    "Old Backup Photos",
+    "Imported Old Backup Photos",
+    "2015",
+    "originals",
+    "jeff iphone photos"
+  ],
+  "dbPath": "/home/pi/filescanner/data/photofiles.db",
+  "playlist": "/home/pi/files.txt",
+  "panel": { "width": 1366, "height": 768 },
+  "fbi": { "device": "/dev/fb0", "tty": 1, "intervalSec": 30 },
+  "scan": {
+    "minBytes": 204800,
+    "iphoneMinBytes": 1024000,
+    "maxBytes": 10485760,
+    "iphoneFolderMatch": "jeff iphone photos",
+    "extensions": ["jpg", "jpeg", "png", "gif", "heic"]
+  },
+  "scripts": {
+    "stopFbi": "/home/pi/stopfbi.sh",
+    "startPhoto": "/home/pi/photo.sh"
+  }
+}

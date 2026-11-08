@@ -1,7 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
+const config = require('../config');
 
 const getPhotoPaths = async (month, day) => {
-    const db = new sqlite3.Database('/home/pi/filescanner/dbmanager/photofiles.db');
+    const db = new sqlite3.Database(config.dbPath);
     return new Promise((resolve, reject) => {
         db.all(`SELECT * FROM photos WHERE day=${day} AND month=${month};`, async (err, rows) => {
             if (err) {
