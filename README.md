@@ -146,6 +146,14 @@ cache path (both default to `/home/pi/cache`) so the paths inside `files.txt`
 resolve. Panels needn't match resolution — fbi's `-a` autozoom scales the shared
 cache to each panel.
 
+**Sharpness across different-size panels:** the shared cache is built at the
+**primary's** `panel` size, so set the primary's `panel` to the *largest*
+consumer's resolution (e.g. `1920×1080` if a client is 1080p and the primary is
+1366×768). Downscaling on the smaller panel stays crisp; upscaling a smaller
+cache onto a larger panel would look soft. The cache key includes the panel
+size, so after changing `panel`, the next `refreshDay.sh` rebuilds at the new
+resolution.
+
 ## Install (fresh Raspberry Pi OS Lite, 64-bit)
 
 ```bash
