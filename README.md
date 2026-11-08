@@ -84,6 +84,13 @@ bash deploy/install.sh        # system + node deps, scripts, service, db
 # then follow the printed steps: mount NAS, install crontab, first scan
 ```
 
+`install.sh` also writes `/etc/sudoers.d/photo-frame` granting the install user
+passwordless sudo for **only** `fbi` and `pkill`. The frame scripts restart fbi
+with `sudo` (it needs root for `/dev/fb0` + the VT switch), and the daily cron
+job runs headless — without this it would hang on a password prompt. Old
+Raspbian gave the `pi` user blanket NOPASSWD by default; a fresh 64-bit install
+does not, so this scopes it narrowly.
+
 ## Reimage runbook: buster (32-bit) → 64-bit
 
 The Pi 3B is 64-bit-capable; the current OS (Raspbian 10 buster) is 32-bit and
