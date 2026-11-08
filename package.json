@@ -6,7 +6,8 @@
   "scripts": {
     "init-db": "node src/dbmanager/init_db.js",
     "scan": "node src/photoscanner/scanAllDirs.js",
-    "refresh": "node src/photoscanner/process_daily_file.js"
+    "refresh": "node src/photoscanner/process_daily_file.js",
+    "whereis": "node src/photoscanner/whereis.js"
   },
   "author": "",
   "license": "ISC",
