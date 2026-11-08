@@ -54,9 +54,25 @@ data/                 Generated SQLite db (git-ignored)
 
 ## Configuration
 
-All host-specific paths live in `config.json` (copied from
-`config.example.json`). No code hard-codes `/home/pi` — a reimage onto a
-different user or host only needs this file edited. Override the location with
+Copy the template and edit it for your setup — nothing host-specific is
+committed:
+
+```bash
+cp config.example.json config.json
+```
+
+Key fields:
+
+- `photosDir` — where your library is mounted (e.g. the NAS mount point).
+- `photoFolders` — the subfolders under `photosDir` to scan (the example names
+  are placeholders; replace with your own).
+- `panel` — your display's resolution (images are letterboxed to this).
+- `imagemagick.bin` — `convert` on ImageMagick 6, `magick` on 7.
+- `scan.iphoneFolderMatch` — any folder whose path contains this string uses the
+  larger `iphoneMinBytes` floor (phone photos tend to be bigger).
+
+`config.json` is git-ignored. No code hard-codes `/home/pi`, so a different user
+or host only needs this file edited. Override its location with
 `PHOTO_FRAME_CONFIG=/path/to/config.json`.
 
 ## Install (fresh Raspberry Pi OS Lite, 64-bit)
@@ -83,7 +99,7 @@ OS: Raspberry Pi OS Lite 64-bit), enabling SSH + user in its settings.
 2. Create the same user layout (or edit `config.json` for a new username).
 3. Mount the NAS. Example `/etc/fstab` line (NFSv3, Synology):
    ```
-   192.168.119.136:/volume1/Photos  /home/<user>/Photos  nfs  rw,hard,vers=3  0  0
+   <NAS_IP>:/volume1/Photos  /home/<user>/Photos  nfs  rw,hard,vers=3  0  0
    ```
 4. `bash deploy/install.sh`, then the printed steps.
 5. **Validate before swapping cards (64-bit display-stack changes):**

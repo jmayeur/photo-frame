@@ -1,11 +1,10 @@
 {
   "photosDir": "/home/pi/Photos",
   "photoFolders": [
-    "Old Backup Photos",
-    "Imported Old Backup Photos",
-    "2015",
-    "originals",
-    "jeff iphone photos"
+    "Family Photos",
+    "Vacations",
+    "Scanned Albums",
+    "Phone Photos"
   ],
   "dbPath": "/home/pi/filescanner/data/photofiles.db",
   "playlist": "/home/pi/files.txt",
@@ -17,7 +16,7 @@
     "minBytes": 204800,
     "iphoneMinBytes": 1024000,
     "maxBytes": 10485760,
-    "iphoneFolderMatch": "jeff iphone photos",
+    "iphoneFolderMatch": "phone photos",
     "extensions": ["jpg", "jpeg", "png", "gif", "heic"]
   },
   "scripts": {
