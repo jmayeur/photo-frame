@@ -1,17 +1,24 @@
 [Unit]
 Description=Photo Frame
-DefaultDependencies=no
-After=multi-user.target
+# fbi needs to own tty1 (the -T 1 VT). getty@tty1 holds it by default, so
+# Conflicts makes systemd release it whenever the frame starts.
+After=multi-user.target getty@tty1.service
+Conflicts=getty@tty1.service
 
 [Service]
-Type=idle
-RemainAfterExit=yes
-User=pi
+Type=simple
+# fbi runs directly as root (no User=, no sudo). A nested sudo session loses
+# tty1 as the controlling terminal and fbi exits right after loading its font;
+# running it as the service's own root process with a forced tty keeps it.
 ExecStart=/bin/bash /home/pi/photo.sh
-StandardInput=tty
+StandardInput=tty-force
 TTYPath=/dev/tty1
-StandardOutput=file:/home/pi/photos.log
-StandardError=file:/home/pi/photos.log
+TTYReset=yes
+TTYVHangup=yes
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

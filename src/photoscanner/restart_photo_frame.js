@@ -1,14 +1,20 @@
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const config = require('../config');
+
+// systemd owns fbi (it runs as root with a forced tty — fbi can't keep tty1
+// when launched via sudo from a service). Rebuilding the playlist just restarts
+// the unit; fbi picks up the new files.txt on start. The daily refresh runs as
+// the pi user via cron, so this needs the scoped NOPASSWD rule install.sh adds.
+const service = 'photos.service';
 
 async function restartPhotoFrame() {
-    const { stdout, stderr } = await exec(`bash "${config.scripts.stopFbi}"`);
-    if (stderr) { console.log('stderr:', stderr); } else {
-        const { stdout2, stderr2 } = await exec(`bash "${config.scripts.startPhoto}"`);
-        if (stderr2) { console.log('stderr2:', stderr2); }
-        console.log({ stdout, stdout2 })
+    const { stdout, stderr } = await exec(`sudo systemctl restart ${service}`);
+    if (stderr) {
+        console.log('stderr:', stderr);
     }
-};
+    if (stdout) {
+        console.log(stdout);
+    }
+}
 
 module.exports = restartPhotoFrame;

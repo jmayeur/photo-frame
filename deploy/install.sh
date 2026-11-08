@@ -35,20 +35,19 @@ install -m 755 "$APP_DIR/deploy/sleep.sh"       "$HOME_DIR/sleep.sh"
 install -m 755 "$APP_DIR/deploy/wake.sh"        "$HOME_DIR/wake.sh"
 mkdir -p "$HOME_DIR/logs" "$APP_DIR/data"
 
-# 4b. Passwordless sudo for fbi, pkill, and the framebuffer blank write.
-# photo.sh/stopfbi.sh call `sudo fbi` / `sudo pkill fbi` (fbi needs root for
-# /dev/fb0 and the VT switch); sleep.sh/wake.sh write the panel's DPMS state via
+# 4b. Passwordless sudo for managing the frame service + the panel blank write.
+# systemd owns fbi (runs it as root with a forced tty); the daily refresh
+# restarts the unit, and sleep.sh stops it, both from the pi user under cron.
+# sleep.sh/wake.sh also write the panel's DPMS state via
 # `sudo tee /sys/class/graphics/fb0/blank`. cron runs these headlessly, so a
-# sudo password prompt would hang/fail. On old Raspbian the `pi` user had
-# blanket NOPASSWD by default; a fresh 64-bit install does not, so scope it to
-# exactly these commands.
-echo "==> Granting passwordless sudo for fbi/pkill + panel blanking (headless cron)"
-FBI_BIN="$(command -v fbi || echo /usr/bin/fbi)"
-PKILL_BIN="$(command -v pkill || echo /usr/bin/pkill)"
+# password prompt would hang. On old Raspbian the `pi` user had blanket
+# NOPASSWD; a fresh 64-bit install does not, so scope it to exactly these.
+echo "==> Granting passwordless sudo for the frame service + panel blanking (headless cron)"
+SYSTEMCTL_BIN="$(command -v systemctl || echo /usr/bin/systemctl)"
 TEE_BIN="$(command -v tee || echo /usr/bin/tee)"
 SUDOERS_TMP="$(mktemp)"
-printf '%s ALL=(ALL) NOPASSWD: %s, %s, %s /sys/class/graphics/fb0/blank\n' \
-    "$USER" "$FBI_BIN" "$PKILL_BIN" "$TEE_BIN" > "$SUDOERS_TMP"
+printf '%s ALL=(ALL) NOPASSWD: %s restart photos.service, %s stop photos.service, %s start photos.service, %s /sys/class/graphics/fb0/blank\n' \
+    "$USER" "$SYSTEMCTL_BIN" "$SYSTEMCTL_BIN" "$SYSTEMCTL_BIN" "$TEE_BIN" > "$SUDOERS_TMP"
 if sudo visudo -cf "$SUDOERS_TMP" >/dev/null; then
   sudo install -m 0440 -o root -g root "$SUDOERS_TMP" /etc/sudoers.d/photo-frame
   echo "   installed /etc/sudoers.d/photo-frame"

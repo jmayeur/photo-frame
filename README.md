@@ -107,11 +107,12 @@ bash deploy/install.sh        # system + node deps, scripts, service, db
 ```
 
 `install.sh` also writes `/etc/sudoers.d/photo-frame` granting the install user
-passwordless sudo for **only** `fbi` and `pkill`. The frame scripts restart fbi
-with `sudo` (it needs root for `/dev/fb0` + the VT switch), and the daily cron
-job runs headless — without this it would hang on a password prompt. Old
-Raspbian gave the `pi` user blanket NOPASSWD by default; a fresh 64-bit install
-does not, so this scopes it narrowly.
+passwordless sudo for **only** managing `photos.service` (start/stop/restart)
+and writing the panel blank node. systemd owns fbi and runs it as root with a
+forced tty (fbi loses `tty1` if launched via `sudo` from a service, and exits);
+the daily cron job restarts the unit headless — without this it would hang on a
+password prompt. Old Raspbian gave the `pi` user blanket NOPASSWD by default; a
+fresh 64-bit install does not, so this scopes it narrowly.
 
 ## Reimage runbook: buster (32-bit) → 64-bit
 
@@ -132,10 +133,13 @@ OS: Raspberry Pi OS Lite 64-bit), enabling SSH + user in its settings.
    ```
 4. `bash deploy/install.sh`, then the printed steps.
 5. **Validate before swapping cards (64-bit display-stack changes):**
-   - [ ] `fbi -d /dev/fb0 -T 1 ...` actually renders on the HDMI panel.
-         Trixie/Bookworm use full KMS (vc4-kms-v3d), not the buster `fkms`
-         driver; `/dev/fb0` is DRM fbdev emulation and may need `console=tty1`
-         / a disabled getty on tty1.
+   - [ ] `fbi -d /dev/fb0 -T 1 ...` actually renders on the HDMI panel, both
+         interactively and **via `photos.service`**. fbi must run as root
+         directly from the unit (not `sudo fbi` — a nested sudo session loses
+         tty1 and fbi exits after loading its font). The unit uses
+         `StandardInput=tty-force` + `Conflicts=getty@tty1.service` so systemd
+         hands it tty1. Trixie/Bookworm use full KMS (vc4-kms-v3d); `/dev/fb0`
+         is DRM fbdev emulation.
    - [ ] Nightly blanking works. `vcgencmd display_power` returns `-1` under
          full KMS (confirmed), so `sleep.sh`/`wake.sh` use the framebuffer DPMS
          node instead: `echo 4 | sudo tee /sys/class/graphics/fb0/blank` powers
