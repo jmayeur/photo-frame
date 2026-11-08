@@ -8,15 +8,15 @@ const filterExistingFiles = async (db, files) => {
     return new Promise((resolve, reject) => {
         db.all('SELECT hash FROM photos;', (err, rows) => {
             if (err) {
-                reject(err);
+                return reject(err);
             }
             if (!rows || rows.length < 1) {
                 resolve(files);
             } else {
-                const dbHashes = rows.map(row => row.hash);
-                resolve(files.filter(file => {
-                    return !dbHashes.some(dbHash => dbHash === file.hash);
-                }));
+                // Set lookup is O(1); the previous Array.some made the filter
+                // O(n*m) — ~58k x 58k on a full library scan.
+                const dbHashes = new Set(rows.map(row => row.hash));
+                resolve(files.filter(file => !dbHashes.has(file.hash)));
             }
         });
     });
@@ -35,20 +35,27 @@ const generatePotentialInserts = (files) => {
 
 const processRawFiles = async (db, files) => {
     const potentialInserts = generatePotentialInserts(files);
-    console.log(`Found ${potentialInserts.length} new photos`);
+    console.log(`Scanned ${potentialInserts.length} photos on disk`);
     const filteredFiles = await filterExistingFiles(db, potentialInserts);
-    console.log(`Inserting ${filteredFiles.length} new  photos`);
+    console.log(`${filteredFiles.length} new photos to index`);
     if (filteredFiles.length < 1) {
-        return Promise.resolve();
+        return;
     }
     // Replace mtime with the real EXIF capture date before indexing, so the
-    // month/day/year columns reflect when the photo was taken.
+    // month/day/year columns reflect when the photo was taken. This reads each
+    // new file over the network, so it's the slow step on a first full scan.
+    console.log(`Reading EXIF capture dates for ${filteredFiles.length} new photos...`);
     await enrichCaptureDates(filteredFiles);
-    return await processInserts(db, filteredFiles);
+    console.log(`Inserting ${filteredFiles.length} photos into the database...`);
+    await processInserts(db, filteredFiles);
 }
 
 module.exports = async (files) => {
     const db = new sqlite3.Database(config.dbPath);
-    return await processRawFiles(db, files) && db.close();
+    try {
+        await processRawFiles(db, files);
+    } finally {
+        db.close();
+    }
 };
 

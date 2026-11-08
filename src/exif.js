@@ -23,17 +23,22 @@ const getCaptureDate = async (filePath, fallback) => {
 // concurrency keeps a Pi 3 responsive when the first scan has thousands of
 // new files to read.
 const enrichCaptureDates = async (files, concurrency = 16) => {
-    let i = 0;
+    const total = files.length;
+    const step = Math.max(1, Math.floor(total / 20)); // log ~every 5%
+    let next = 0;
+    let done = 0;
     const worker = async () => {
-        while (i < files.length) {
-            const file = files[i++];
+        while (next < total) {
+            const file = files[next++];
             file.date = await getCaptureDate(file.path, file.date);
+            done++;
+            if (done % step === 0 || done === total) {
+                const pct = Math.round((done / total) * 100);
+                console.log(`  EXIF ${done}/${total} (${pct}%)`);
+            }
         }
     };
-    const workers = Array.from(
-        { length: Math.min(concurrency, files.length) },
-        worker
-    );
+    const workers = Array.from({ length: Math.min(concurrency, total) }, worker);
     await Promise.all(workers);
     return files;
 };
