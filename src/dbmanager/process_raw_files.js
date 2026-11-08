@@ -2,6 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const config = require('../config');
 const getHash = require('./get_hash');
 const processInserts = require('./process_inserts');
+const { enrichCaptureDates } = require('../exif');
 
 const filterExistingFiles = async (db, files) => {
     return new Promise((resolve, reject) => {
@@ -40,6 +41,9 @@ const processRawFiles = async (db, files) => {
     if (filteredFiles.length < 1) {
         return Promise.resolve();
     }
+    // Replace mtime with the real EXIF capture date before indexing, so the
+    // month/day/year columns reflect when the photo was taken.
+    await enrichCaptureDates(filteredFiles);
     return await processInserts(db, filteredFiles);
 }
 
