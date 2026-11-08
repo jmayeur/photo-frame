@@ -31,19 +31,24 @@ install -m 755 "$APP_DIR/deploy/photo.sh"       "$HOME_DIR/photo.sh"
 install -m 755 "$APP_DIR/deploy/stopfbi.sh"     "$HOME_DIR/stopfbi.sh"
 install -m 755 "$APP_DIR/deploy/refreshDay.sh"  "$HOME_DIR/refreshDay.sh"
 install -m 755 "$APP_DIR/deploy/scanAllDirs.sh" "$HOME_DIR/scanAllDirs.sh"
+install -m 755 "$APP_DIR/deploy/sleep.sh"       "$HOME_DIR/sleep.sh"
+install -m 755 "$APP_DIR/deploy/wake.sh"        "$HOME_DIR/wake.sh"
 mkdir -p "$HOME_DIR/logs" "$APP_DIR/data"
 
-# 4b. Passwordless sudo for fbi + pkill.
-# photo.sh/stopfbi.sh call `sudo fbi` and `sudo pkill fbi` (fbi needs root for
-# /dev/fb0 and the VT switch). cron runs the daily refresh headlessly, so a
+# 4b. Passwordless sudo for fbi, pkill, and the framebuffer blank write.
+# photo.sh/stopfbi.sh call `sudo fbi` / `sudo pkill fbi` (fbi needs root for
+# /dev/fb0 and the VT switch); sleep.sh/wake.sh write the panel's DPMS state via
+# `sudo tee /sys/class/graphics/fb0/blank`. cron runs these headlessly, so a
 # sudo password prompt would hang/fail. On old Raspbian the `pi` user had
 # blanket NOPASSWD by default; a fresh 64-bit install does not, so scope it to
-# exactly these two commands.
-echo "==> Granting passwordless sudo for fbi/pkill (cron restarts the frame headlessly)"
+# exactly these commands.
+echo "==> Granting passwordless sudo for fbi/pkill + panel blanking (headless cron)"
 FBI_BIN="$(command -v fbi || echo /usr/bin/fbi)"
 PKILL_BIN="$(command -v pkill || echo /usr/bin/pkill)"
+TEE_BIN="$(command -v tee || echo /usr/bin/tee)"
 SUDOERS_TMP="$(mktemp)"
-printf '%s ALL=(ALL) NOPASSWD: %s, %s\n' "$USER" "$FBI_BIN" "$PKILL_BIN" > "$SUDOERS_TMP"
+printf '%s ALL=(ALL) NOPASSWD: %s, %s, %s /sys/class/graphics/fb0/blank\n' \
+    "$USER" "$FBI_BIN" "$PKILL_BIN" "$TEE_BIN" > "$SUDOERS_TMP"
 if sudo visudo -cf "$SUDOERS_TMP" >/dev/null; then
   sudo install -m 0440 -o root -g root "$SUDOERS_TMP" /etc/sudoers.d/photo-frame
   echo "   installed /etc/sudoers.d/photo-frame"
