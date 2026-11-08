@@ -5,9 +5,20 @@ const path = require('path');
 const crypto = require('crypto');
 const config = require('../config');
 
+const im = config.imagemagick || {};
 const { width, height } = config.panel;
-const bin = (config.imagemagick && config.imagemagick.bin) || 'convert';
-const quality = String((config.imagemagick && config.imagemagick.quality) || 90);
+const bin = im.bin || 'convert';
+const quality = String(im.quality || 90);
+
+// How many conversions run at once. Each HEIC decode (12 MP iPhone photos via
+// libheif) needs a few hundred MB, so decoding several at once can OOM a 1 GB
+// Pi 3 — which hard-rebooted it during a full 1920x1080 cache rebuild. Default
+// to 2; set imagemagick.concurrency to 1 on the most memory-starved devices.
+const concurrency = Math.max(1, im.concurrency || 2);
+
+// Cap ImageMagick's pixel-cache memory so it spills to disk instead of competing
+// with libheif's decode buffers for the last few hundred MB of RAM.
+const limitArgs = ['-limit', 'memory', '256MiB', '-limit', 'map', '512MiB'];
 
 // Deterministic cache filename from source path + mtime + panel size: a
 // re-export of the same file reuses the cache, an edited file (or a changed
@@ -47,6 +58,7 @@ const prepareImage = async (src) => {
 
     fs.mkdirSync(config.cacheDir, { recursive: true });
     const args = [
+        ...limitArgs,
         `${src}[0]`, // first frame/page only (animated GIF, multi-image HEIC)
         '-auto-orient',
         '-resize', `${width}x${height}`,
@@ -67,9 +79,9 @@ const prepareImage = async (src) => {
     }
 };
 
-// Convert many sources with bounded concurrency (Pi 3 has 4 cores). Preserves
-// order and drops any that failed. Returns [{ src, out }].
-const prepareImages = async (sources, concurrency = 4) => {
+// Convert many sources with bounded concurrency (config.imagemagick.concurrency,
+// default 2). Preserves order and drops any that failed. Returns [{ src, out }].
+const prepareImages = async (sources, workers = concurrency) => {
     const results = new Array(sources.length);
     let i = 0;
     const worker = async () => {
@@ -79,7 +91,7 @@ const prepareImages = async (sources, concurrency = 4) => {
         }
     };
     await Promise.all(
-        Array.from({ length: Math.min(concurrency, sources.length) }, worker)
+        Array.from({ length: Math.min(workers, sources.length) }, worker)
     );
     return results.filter(Boolean);
 };
