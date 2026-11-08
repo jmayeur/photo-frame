@@ -33,6 +33,14 @@ const generatePotentialInserts = (files) => {
     });
 };
 
+// Enrich + insert this many files at a time. A full first scan has tens of
+// thousands of new photos; reading EXIF for all of them in one pass lets
+// exifr's per-file buffers accumulate until Node's ~450MB old-space on a 1GB
+// Pi 3 OOMs near the end. Chunking keeps peak memory flat (GC reclaims between
+// chunks) and commits each chunk, so an interrupted scan resumes where it left
+// off — already-indexed hashes are skipped by filterExistingFiles next run.
+const CHUNK_SIZE = 2000;
+
 const processRawFiles = async (db, files) => {
     const potentialInserts = generatePotentialInserts(files);
     console.log(`Scanned ${potentialInserts.length} photos on disk`);
@@ -44,10 +52,16 @@ const processRawFiles = async (db, files) => {
     // Replace mtime with the real EXIF capture date before indexing, so the
     // month/day/year columns reflect when the photo was taken. This reads each
     // new file over the network, so it's the slow step on a first full scan.
-    console.log(`Reading EXIF capture dates for ${filteredFiles.length} new photos...`);
-    await enrichCaptureDates(filteredFiles);
-    console.log(`Inserting ${filteredFiles.length} photos into the database...`);
-    await processInserts(db, filteredFiles);
+    const total = filteredFiles.length;
+    console.log(`Reading EXIF + inserting ${total} new photos in chunks of ${CHUNK_SIZE}...`);
+    for (let i = 0; i < total; i += CHUNK_SIZE) {
+        const chunk = filteredFiles.slice(i, i + CHUNK_SIZE);
+        await enrichCaptureDates(chunk, 16, false);
+        await processInserts(db, chunk);
+        const done = Math.min(i + CHUNK_SIZE, total);
+        const pct = Math.round((done / total) * 100);
+        console.log(`  committed ${done}/${total} (${pct}%)`);
+    }
 }
 
 module.exports = async (files) => {

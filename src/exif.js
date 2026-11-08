@@ -21,8 +21,9 @@ const getCaptureDate = async (filePath, fallback) => {
 
 // Enrich each file's `date` in place with its EXIF capture date. Bounded
 // concurrency keeps a Pi 3 responsive when the first scan has thousands of
-// new files to read.
-const enrichCaptureDates = async (files, concurrency = 16) => {
+// new files to read. Callers that process in chunks pass log=false and do
+// their own progress reporting at the chunk boundary.
+const enrichCaptureDates = async (files, concurrency = 16, log = true) => {
     const total = files.length;
     const step = Math.max(1, Math.floor(total / 20)); // log ~every 5%
     let next = 0;
@@ -32,7 +33,7 @@ const enrichCaptureDates = async (files, concurrency = 16) => {
             const file = files[next++];
             file.date = await getCaptureDate(file.path, file.date);
             done++;
-            if (done % step === 0 || done === total) {
+            if (log && (done % step === 0 || done === total)) {
                 const pct = Math.round((done / total) * 100);
                 console.log(`  EXIF ${done}/${total} (${pct}%)`);
             }
