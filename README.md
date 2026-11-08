@@ -20,8 +20,13 @@ NAS (Synology, NFS)  ──mounted at──>  <photosDir>
    files.txt  (today's display-ready photos, in cacheDir)
         │
         ▼
-   fbi -d /dev/fb0  (full-screen slideshow, 30s/photo)
+   frame.sh → fbi  (full-screen slideshow on tty1, 30s/photo)
 ```
+
+The slideshow runs from **`frame.sh`**, launched by a `~/.bash_profile` hook on
+the **tty1 autologin** session — not a systemd service. See
+[Display: why autologin](#display-why-autologin) for why that's necessary on
+64-bit (full-KMS) Raspberry Pi OS.
 
 Scheduling lives in `deploy/crontab`:
 
@@ -47,9 +52,10 @@ src/
   photoscanner/       Scan NAS, build daily playlist, restart fbi
   dbmanager/          SQLite index (init, insert, query)
 deploy/
-  photos.service      systemd unit that launches fbi on boot
+  frame.sh            Slideshow loop (runs on the tty1 autologin session)
+  getty-autologin.conf  tty1 autologin drop-in (reference; install.sh applies it)
   crontab             The schedule above
-  photo.sh/stopfbi.sh fbi start/stop
+  stopfbi.sh          Pause the slideshow
   sleep.sh/wake.sh    Nightly panel power-down / power-up (KMS DPMS)
   refreshDay.sh       Wrapper: rebuild today's playlist
   scanAllDirs.sh      Wrapper: full rescan
@@ -102,17 +108,38 @@ one day's worth of images rather than growing toward the whole library.
 ```bash
 git clone <this repo> ~/filescanner
 cd ~/filescanner
-bash deploy/install.sh        # system + node deps, scripts, service, db
-# then follow the printed steps: mount NAS, install crontab, first scan
+bash deploy/install.sh        # system + node deps, scripts, tty1 autologin, db
+# then follow the printed steps: mount NAS, install crontab, first scan, reboot
 ```
 
-`install.sh` also writes `/etc/sudoers.d/photo-frame` granting the install user
-passwordless sudo for **only** managing `photos.service` (start/stop/restart)
-and writing the panel blank node. systemd owns fbi and runs it as root with a
-forced tty (fbi loses `tty1` if launched via `sudo` from a service, and exits);
-the daily cron job restarts the unit headless — without this it would hang on a
-password prompt. Old Raspbian gave the `pi` user blanket NOPASSWD by default; a
-fresh 64-bit install does not, so this scopes it narrowly.
+`install.sh` sets up the tty1 autologin, the `frame.sh` launch hook, and writes
+`/etc/sudoers.d/photo-frame` granting the install user passwordless sudo for
+**only** `fbi`, `pkill`, and writing the panel blank node. `frame.sh` runs
+`sudo fbi`; the refresh/sleep scripts `sudo pkill fbi`; and the cron jobs run
+headless, so a password prompt would hang. Old Raspbian gave the `pi` user
+blanket NOPASSWD by default; a fresh 64-bit install does not, so this scopes it
+narrowly.
+
+## Display: why autologin
+
+On 64-bit Raspberry Pi OS the display uses **full KMS** (`vc4-kms-v3d`), where
+`/dev/fb0` is DRM *fbdev emulation*. fbi can only drive that from a process that
+genuinely **owns tty1** — i.e. a real login session on that console. A systemd
+service can't provide one: `sudo fbi` from a service spawns a PAM session that
+loses tty1 and fbi exits right after loading its font, and a non-root fbi hits
+`VT_ACTIVATE: Operation not permitted`. The reliable fix (what `install.sh` does)
+is to **autologin the frame user on tty1** and launch `frame.sh` from the login
+shell, which gives fbi exactly the console it needs.
+
+`frame.sh` loops `sudo fbi … -l files.txt`; killing fbi (the daily refresh, or
+`stopfbi.sh`) makes the loop relaunch it with the rebuilt playlist. A
+`~/.frame-paused` flag lets `sleep.sh` hold the panel off overnight.
+
+> Older frames on this network avoid all of this by running the **FKMS** driver
+> (`dtoverlay=vc4-fkms-v3d`), where `/dev/fb0` is a real framebuffer and fbi runs
+> happily from a plain service. FKMS was deprecated in Bookworm and may be gone
+> in Trixie; if a future image still offers it, switching to FKMS would let you
+> drop the autologin machinery entirely.
 
 ## Reimage runbook: buster (32-bit) → 64-bit
 
@@ -133,13 +160,11 @@ OS: Raspberry Pi OS Lite 64-bit), enabling SSH + user in its settings.
    ```
 4. `bash deploy/install.sh`, then the printed steps.
 5. **Validate before swapping cards (64-bit display-stack changes):**
-   - [ ] `fbi -d /dev/fb0 -T 1 ...` actually renders on the HDMI panel, both
-         interactively and **via `photos.service`**. fbi must run as root
-         directly from the unit (not `sudo fbi` — a nested sudo session loses
-         tty1 and fbi exits after loading its font). The unit uses
-         `StandardInput=tty-force` + `Conflicts=getty@tty1.service` so systemd
-         hands it tty1. Trixie/Bookworm use full KMS (vc4-kms-v3d); `/dev/fb0`
-         is DRM fbdev emulation.
+   - [ ] The slideshow comes up **on its own after a reboot** via the tty1
+         autologin (not just interactively over SSH). Under full KMS fbi needs
+         to own tty1 — see [Display: why autologin](#display-why-autologin). A
+         systemd service does **not** work here; `install.sh` configures the
+         autologin + `frame.sh` hook. Confirm with a real `sudo reboot`.
    - [ ] Nightly blanking works. `vcgencmd display_power` returns `-1` under
          full KMS (confirmed), so `sleep.sh`/`wake.sh` use the framebuffer DPMS
          node instead: `echo 4 | sudo tee /sys/class/graphics/fb0/blank` powers
