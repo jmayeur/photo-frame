@@ -23,14 +23,22 @@ const filterExistingFiles = async (db, files) => {
 }
 
 
+// Build insert rows, deduped by hash. Configured photoFolders can overlap (one
+// nested under another, or reachable two ways), so the recursive walker can
+// emit the same path more than once; without this, the duplicate rows collide
+// on the UNIQUE(hash) index and also waste an EXIF read each.
 const generatePotentialInserts = (files) => {
-    return files.map(file => {
-        return {
-            hash: getHash(file.path),
-            path: file.path,
-            date: file.date
-        };
-    });
+    const seen = new Set();
+    const inserts = [];
+    for (const file of files) {
+        const hash = getHash(file.path);
+        if (seen.has(hash)) {
+            continue;
+        }
+        seen.add(hash);
+        inserts.push({ hash, path: file.path, date: file.date });
+    }
+    return inserts;
 };
 
 // Enrich + insert this many files at a time. A full first scan has tens of
@@ -43,7 +51,8 @@ const CHUNK_SIZE = 2000;
 
 const processRawFiles = async (db, files) => {
     const potentialInserts = generatePotentialInserts(files);
-    console.log(`Scanned ${potentialInserts.length} photos on disk`);
+    const dupCount = files.length - potentialInserts.length;
+    console.log(`Scanned ${files.length} photos on disk${dupCount ? ` (${dupCount} duplicate paths skipped)` : ''}`);
     const filteredFiles = await filterExistingFiles(db, potentialInserts);
     console.log(`${filteredFiles.length} new photos to index`);
     if (filteredFiles.length < 1) {
