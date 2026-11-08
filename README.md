@@ -59,7 +59,7 @@ All host-specific paths live in `config.json` (copied from
 different user or host only needs this file edited. Override the location with
 `PHOTO_FRAME_CONFIG=/path/to/config.json`.
 
-## Install (fresh Raspberry Pi OS Bookworm Lite, 64-bit)
+## Install (fresh Raspberry Pi OS Lite, 64-bit)
 
 ```bash
 git clone <this repo> ~/filescanner
@@ -68,24 +68,29 @@ bash deploy/install.sh        # system + node deps, scripts, service, db
 # then follow the printed steps: mount NAS, install crontab, first scan
 ```
 
-## Reimage runbook: buster (32-bit) → Bookworm (64-bit)
+## Reimage runbook: buster (32-bit) → 64-bit
 
 The Pi 3B is 64-bit-capable; the current OS (Raspbian 10 buster) is 32-bit and
-end-of-life. Reimage onto a **spare SD card** so the running card stays as
-instant rollback.
+end-of-life. The 32→64-bit change cannot be done in place — it requires a
+reflash. Use a **spare SD card** so the running card stays as instant rollback.
 
-1. Flash **Raspberry Pi OS Bookworm Lite (64-bit)** to a spare card. Enable SSH.
+Target OS (as of Nov 2026): **Raspberry Pi OS Lite (64-bit)**, currently based on
+Debian 13 "Trixie". Bookworm is now the Legacy line; either works (both use full
+KMS + ImageMagick 7). Flash with **Raspberry Pi Imager** (device: Raspberry Pi 3;
+OS: Raspberry Pi OS Lite 64-bit), enabling SSH + user in its settings.
+
+1. Flash to a spare card and boot it headless.
 2. Create the same user layout (or edit `config.json` for a new username).
 3. Mount the NAS. Example `/etc/fstab` line (NFSv3, Synology):
    ```
    192.168.119.136:/volume1/Photos  /home/<user>/Photos  nfs  rw,hard,vers=3  0  0
    ```
 4. `bash deploy/install.sh`, then the printed steps.
-5. **Validate before swapping cards (Bookworm display-stack changes):**
+5. **Validate before swapping cards (64-bit display-stack changes):**
    - [ ] `fbi -d /dev/fb0 -T 1 ...` actually renders on the HDMI panel.
-         Bookworm uses full KMS (vc4-kms-v3d), not the buster `fkms` driver;
-         `/dev/fb0` is DRM fbdev emulation and may need `console=tty1` / a
-         disabled getty on tty1.
+         Trixie/Bookworm use full KMS (vc4-kms-v3d), not the buster `fkms`
+         driver; `/dev/fb0` is DRM fbdev emulation and may need `console=tty1`
+         / a disabled getty on tty1.
    - [ ] Nightly blanking works. `vcgencmd display_power 0/1` is legacy and may
          not blank HDMI under KMS — fall back to `wlr-randr`, `xset`, or
          CEC (`cec-ctl`/`echo 'standby 0' | cec-client`) if so.
@@ -96,8 +101,8 @@ instant rollback.
 ## ImageMagick note
 
 On the current buster Pi (ImageMagick 6) the command is `convert` — the default
-in `config.json` (`imagemagick.bin`). On the **Bookworm reimage** (ImageMagick 7)
-`convert` is deprecated; set `imagemagick.bin` to `magick`.
+in `config.json` (`imagemagick.bin`). On the **64-bit reimage** (Trixie/Bookworm,
+ImageMagick 7) `convert` is deprecated; set `imagemagick.bin` to `magick`.
 
 ## Known follow-ups (not yet applied)
 
