@@ -9,7 +9,9 @@
   ],
   "dbPath": "/home/pi/filescanner/data/photofiles.db",
   "playlist": "/home/pi/files.txt",
+  "cacheDir": "/home/pi/cache",
   "panel": { "width": 1366, "height": 768 },
+  "imagemagick": { "bin": "convert", "quality": 90 },
   "fbi": { "device": "/dev/fb0", "tty": 1, "intervalSec": 30 },
   "scan": {
     "minBytes": 204800,

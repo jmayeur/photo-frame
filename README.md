@@ -15,8 +15,9 @@ NAS (Synology, NFS)  ──mounted at──>  <photosDir>
    data/photofiles.db   (photos keyed by month/day/year)
         │
         │  daily 07:15: process_daily_file.js
+        │    → ImageMagick: EXIF-rotate, HEIC→JPEG, letterbox to panel (cached)
         ▼
-   files.txt  (today's "on this day" photos)
+   files.txt  (today's display-ready photos, in cacheDir)
         │
         ▼
    fbi -d /dev/fb0  (full-screen slideshow, 30s/photo)
@@ -92,10 +93,13 @@ instant rollback.
          with `convert -list format | grep -i heic`.
 6. Swap the card once all three pass.
 
+## ImageMagick note
+
+On the current buster Pi (ImageMagick 6) the command is `convert` — the default
+in `config.json` (`imagemagick.bin`). On the **Bookworm reimage** (ImageMagick 7)
+`convert` is deprecated; set `imagemagick.bin` to `magick`.
+
 ## Known follow-ups (not yet applied)
 
-- Use EXIF `DateTimeOriginal` instead of file mtime for the "on this day" date.
-- Parameterize SQL queries; fix the month-wrap recursion in `get_month_day_photos.js`.
-- Pre-process images (EXIF-rotate, HEIC→JPEG, resize to the panel) with ImageMagick,
-  driven from the scanner.
 - Replace `auto-update.sh`'s `dist-upgrade` with `unattended-upgrades` (security only).
+- Content-based dedup (a moved/renamed file currently re-indexes as new).
