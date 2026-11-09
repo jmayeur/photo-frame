@@ -1,7 +1,7 @@
 // Emit the frame's runtime settings as shell-sourceable lines, so the bash
 // launcher (frame.sh) and the client pull (sync.sh) stay generic while
 // config.json remains the single source of truth. install.sh writes the output
-// to ~/.frame.env; re-run `npm run frame-env > ~/.frame.env` after editing config.
+// to ~/.frame.env; re-run `node src/frame_env.js > ~/.frame.env` after editing config.
 const config = require('./config');
 
 const fbi = config.fbi || {};

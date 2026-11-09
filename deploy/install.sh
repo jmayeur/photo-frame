@@ -38,7 +38,7 @@ mkdir -p "$HOME_DIR/logs" "$APP_DIR/data"
 
 # Render the shell env (fbi options + playlist + optional client source) from
 # config.json, so frame.sh/sync.sh stay generic. Re-run after editing config:
-#   npm run frame-env > ~/.frame.env
+#   node src/frame_env.js > ~/.frame.env
 node "$APP_DIR/src/frame_env.js" > "$HOME_DIR/.frame.env"
 echo "   wrote $HOME_DIR/.frame.env"
 
