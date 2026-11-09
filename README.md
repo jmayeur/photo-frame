@@ -83,6 +83,9 @@ Key fields:
   are placeholders; replace with your own).
 - `panel` — your display's resolution (images are letterboxed to this).
 - `imagemagick.bin` — `convert` on ImageMagick 6, `magick` on 7.
+- `imagemagick.concurrency` — how many conversions run at once (default 2). Each
+  12 MP HEIC decode needs a few hundred MB; set this to `1` on a 1 GB Pi 3,
+  especially when building a 1920×1080 cache, or a mass rebuild can OOM the box.
 - `scan.iphoneFolderMatch` — any folder whose path contains this string uses the
   larger `iphoneMinBytes` floor (phone photos tend to be bigger).
 - `fbi.verbose` — `true` shows the filename overlay (`-v`); `false` hides it

@@ -10,7 +10,7 @@
   "playlist": "/home/pi/files.txt",
   "cacheDir": "/home/pi/cache",
   "panel": { "width": 1366, "height": 768 },
-  "imagemagick": { "bin": "convert", "quality": 90 },
+  "imagemagick": { "bin": "convert", "quality": 90, "concurrency": 2 },
   "fbi": { "device": "/dev/fb0", "tty": 1, "intervalSec": 30, "verbose": true },
   "scan": {
     "minBytes": 204800,
