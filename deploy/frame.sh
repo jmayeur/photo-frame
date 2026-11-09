@@ -25,6 +25,14 @@ while true; do
         sleep 2
         continue
     fi
-    sudo fbi $FBI_OPTS -l "$LIST"
+    # Only launch fbi if one isn't already up. In the autologin context fbi
+    # detaches from the shell (sudo returns while fbi keeps running), so without
+    # this guard the loop would stack a new fbi every 2s and they'd fight over
+    # the framebuffer (slideshow stuck flashing image 1). The daily refresh and
+    # sleep.sh `pkill fbi`, which lets the next pass relaunch with the fresh
+    # playlist.
+    if ! pgrep -x fbi >/dev/null; then
+        sudo fbi $FBI_OPTS -l "$LIST"
+    fi
     sleep 2
 done
