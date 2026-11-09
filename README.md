@@ -95,7 +95,7 @@ Key fields:
   scanning the NAS — see [A second frame](#a-second-frame-primary--client).
 
 fbi options are rendered from config into `~/.frame.env` at install; after
-editing `config.json`, regenerate with `npm run frame-env > ~/.frame.env`.
+editing `config.json`, regenerate with `node src/frame_env.js > ~/.frame.env`.
 
 `config.json` is git-ignored. No code hard-codes `/home/pi`, so a different user
 or host only needs this file edited. Override its location with
