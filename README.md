@@ -139,12 +139,15 @@ bash deploy/install.sh                 # detects `source`, sets up display + syn
 ssh-keygen -t ed25519                   # key-based SSH to the primary (for rsync)
 ssh-copy-id pi@192.168.119.7
 ~/sync.sh                               # first pull: cache/ + files.txt
-crontab deploy/crontab.client           # pull 07:20 daily + nightly blank/wake
+crontab deploy/crontab.client           # pull each morning once primary is rebuilt + blank/wake
 sudo reboot
 ```
 
 `sync.sh` rsyncs the primary's `cache/` (mirrored, `--delete`) and `files.txt`,
-then nudges fbi to reload. The client's `cacheDir` must match the primary's
+then nudges fbi to reload. It only pulls once the primary's `files.txt` is dated
+today (the primary writes it last, after the cache is built), so cron retries it
+every 10 minutes through the morning rather than guessing when the rebuild ends.
+`~/sync.sh --force` pulls whatever the primary has right now. The client's `cacheDir` must match the primary's
 cache path (both default to `/home/pi/cache`) so the paths inside `files.txt`
 resolve. Panels needn't match resolution — fbi's `-a` autozoom scales the shared
 cache to each panel.
