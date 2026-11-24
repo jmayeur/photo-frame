@@ -2,11 +2,14 @@
 # This frame pulls the primary's prepared playlist + cache; it does NOT scan the
 # NAS or build playlists. Install with:  crontab deploy/crontab.client
 #
-# Pull runs after the primary's 07:15 daily rebuild. Nightly blank/wake are the
-# same as the primary.
+# The primary's 07:15 rebuild finishes anywhere from ~07:25 to 08:00+, so sync.sh
+# runs every 10 minutes 07:20-11:50 and only pulls once the primary's files.txt is
+# dated today (earlier runs log "not ready"; later runs exit silently). Nightly
+# blank/wake are the same as the primary.
 #
 # m h  dom mon dow   command
 0  7   *   *   *     /home/pi/wake.sh                                     # power the panel back on
-20 7   *   *   *     /home/pi/sync.sh >> /home/pi/sync.log 2>&1           # pull the primary's playlist + cache
+20-59/10 7 * * *    /home/pi/sync.sh >> /home/pi/sync.log 2>&1           # pull once the primary has rebuilt
+*/10 8-11 *   *   *  /home/pi/sync.sh >> /home/pi/sync.log 2>&1           # (keep trying through late morning)
 30 22  *   *   *     /home/pi/sleep.sh                                    # power the panel off at night
 # OS updates: unattended-upgrades (security only) — see deploy/apt/.

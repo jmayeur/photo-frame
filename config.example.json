@@ -8,6 +8,7 @@
   ],
   "dbPath": "/home/pi/filescanner/data/photofiles.db",
   "playlist": "/home/pi/files.txt",
+  "playlistRetentionDays": 10,
   "cacheDir": "/home/pi/cache",
   "panel": { "width": 1366, "height": 768 },
   "imagemagick": { "bin": "convert", "quality": 90, "concurrency": 2 },

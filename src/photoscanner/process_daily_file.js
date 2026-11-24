@@ -3,8 +3,31 @@ const { unlink, copyFile } = require("node:fs/promises");
 const fs = require("fs");
 const restartPhotoFrame = require("./restart_photo_frame");
 const config = require("../config");
+const path = require("path");
 const defaultFile = config.playlist;
 const backupFile = config.backupPlaylist;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const retentionDays = config.playlistRetentionDays ?? 10;
+
+// Delete daily files_<mon>_<day>.txt playlists older than retentionDays (by
+// mtime). files.txt itself, the backup and anything else are never touched.
+const pruneOldPlaylists = () => {
+  const cutoff = Date.now() - retentionDays * DAY_MS;
+  let removed = 0;
+  for (const name of fs.readdirSync(config.playlistDir)) {
+    if (!/^files_[a-z]{3}_\d{1,2}\.txt$/.test(name)) continue;
+    const file = path.join(config.playlistDir, name);
+    try {
+      if (fs.statSync(file).mtimeMs < cutoff) {
+        fs.unlinkSync(file);
+        removed++;
+      }
+    } catch (err) {
+      console.error(`Could not prune ${file}: ${err.message}`);
+    }
+  }
+  if (removed) console.log(`Pruned ${removed} daily playlist(s) older than ${retentionDays} days`);
+};
 
 const waitForFile = (file) => {
   return new Promise((resolve, reject) => {
@@ -51,6 +74,8 @@ const processDailyFile = async () => {
     if (fs.existsSync(backupFile)) {
       await unlink(backupFile);
     }
+
+    pruneOldPlaylists();
 
     await restartPhotoFrame();
   } catch (err) {
